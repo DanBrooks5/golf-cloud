@@ -8,7 +8,7 @@ export default function Home() {
   const [loadingList, setLoadingList] = useState(false);
   const [percent, setPercent] = useState(0);
 
-  const MAX_MB = 500; // adjust if you want
+  const MAX_MB = 500;
   const ALLOWED_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 
   async function refreshList() {
@@ -29,8 +29,6 @@ export default function Home() {
   function onPick(e) {
     const f = e.target.files?.[0] || null;
     if (!f) return setFile(null);
-
-    // (B) Guardrails: type + size
     if (!ALLOWED_TYPES.includes(f.type)) {
       alert("Please select an MP4/MOV/WEBM video.");
       e.target.value = "";
@@ -42,7 +40,6 @@ export default function Home() {
       e.target.value = "";
       return;
     }
-
     setFile(f);
     setPercent(0);
     setStatus("");
@@ -51,11 +48,9 @@ export default function Home() {
   async function uploadFile() {
     try {
       if (!file) { alert("Pick a video first."); return; }
-
       setStatus("Requesting upload URL…");
       setPercent(0);
 
-      // 1) Ask API for signed URL
       const res = await fetch("/api/upload", {
         method: "POST",
         body: JSON.stringify({ name: file.name, type: file.type }),
@@ -65,11 +60,9 @@ export default function Home() {
 
       setStatus("Uploading to S3…");
 
-      // 2) True progress upload with XHR
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", data.uploadURL);
-
         xhr.upload.onprogress = (evt) => {
           if (evt.lengthComputable) {
             const pct = Math.round((evt.loaded / evt.total) * 100);
@@ -100,6 +93,20 @@ export default function Home() {
     await refreshList();
   }
 
+  async function setRating(key, rating) {
+    const res = await fetch("/api/rate", {
+      method: "POST",
+      body: JSON.stringify({ key, rating }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data?.error || "Failed to save rating");
+      return;
+    }
+    // update UI without full refresh
+    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, rating } : it)));
+  }
+
   useEffect(() => { refreshList(); }, []);
 
   return (
@@ -125,6 +132,7 @@ export default function Home() {
       </div>
 
       {status ? <p>{status}</p> : null}
+      {loadingList ? <p>Loading…</p> : null}
 
       <div style={{ width: "100%", maxWidth: 1000 }}>
         {items.length === 0 ? (
@@ -134,8 +142,29 @@ export default function Home() {
             {items.map((it) => (
               <div key={it.key} style={{ border: "1px solid #1f2937", padding: 10, borderRadius: 10, background: "#0b0f16" }}>
                 <video src={it.url} controls style={{ width: "100%", borderRadius: 8 }} />
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                  <small title={it.key} style={{ color: "#9ca3af" }}>{new Date(it.lastModified).toLocaleString()}</small>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 8 }}>
+                  <small title={it.key} style={{ color: "#9ca3af" }}>
+                    {new Date(it.lastModified).toLocaleString()}
+                  </small>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label htmlFor={`r-${it.key}`} style={{ color: "#9ca3af", fontSize: 12 }}>Rating</label>
+                    <select
+                      id={`r-${it.key}`}
+                      value={it.rating ?? ""}
+                      onChange={(e) => setRating(it.key, Number(e.target.value))}
+                      style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}
+                    >
+                      <option value="" disabled>—</option>
+                      {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                    {typeof it.rating === "number" && (
+                      <span style={{ fontSize: 12, color: "#9ca3af" }}>({it.rating}/10)</span>
+                    )}
+                  </div>
+
                   <button
                     onClick={() => deleteItem(it.key)}
                     style={{ background: "#dc2626", color: "white", padding: "4px 8px", borderRadius: 6 }}
@@ -155,4 +184,5 @@ export default function Home() {
     </main>
   );
 }
+
 
