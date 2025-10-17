@@ -7,10 +7,8 @@ export default function Home() {
   const [items, setItems] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [percent, setPercent] = useState(0);
-
-  // NEW: filter & sort state
-  const [minRating, setMinRating] = useState(""); // "" means no filter
-  const [sortBy, setSortBy] = useState("newest"); // newest | highest | lowest
+  const [minRating, setMinRating] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   const MAX_MB = 500;
   const ALLOWED_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
@@ -97,39 +95,30 @@ export default function Home() {
     await refreshList();
   }
 
-  async function setRating(key, rating) {
-    const res = await fetch("/api/rate", {
-      method: "POST",
-      body: JSON.stringify({ key, rating }),
-    });
+  async function saveMeta(key, changes) {
+    const item = items.find((i) => i.key === key);
+    const body = {
+      key,
+      rating: changes.rating ?? item.rating ?? null,
+      tags: changes.tags ?? item.tags ?? [],
+      notes: changes.notes ?? item.notes ?? "",
+      favorite: changes.favorite ?? item.favorite ?? false,
+    };
+    const res = await fetch("/api/meta", { method: "POST", body: JSON.stringify(body) });
     const data = await res.json();
-    if (!res.ok) {
-      alert(data?.error || "Failed to save rating");
-      return;
-    }
-    // update UI without full refresh
-    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, rating } : it)));
+    if (!res.ok) alert(data?.error || "Failed to save metadata");
+    else setItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...changes } : it)));
   }
 
-  // Derived list: apply filter + sort client-side
   const filteredSorted = useMemo(() => {
     let list = [...items];
-
-    // filter by min rating if set
     if (minRating !== "") {
       const threshold = Number(minRating);
       list = list.filter((it) => (typeof it.rating === "number" ? it.rating : 0) >= threshold);
     }
-
-    // sort
-    if (sortBy === "newest") {
-      list.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
-    } else if (sortBy === "highest") {
-      list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
-    } else if (sortBy === "lowest") {
-      list.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
-    }
-
+    if (sortBy === "newest") list.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+    else if (sortBy === "highest") list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    else if (sortBy === "lowest") list.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
     return list;
   }, [items, minRating, sortBy]);
 
@@ -139,51 +128,31 @@ export default function Home() {
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", gap: 16, alignItems: "center", padding: 24 }}>
       <h1 style={{ fontSize: 28, fontWeight: 800 }}>Golf Cloud</h1>
 
-      {/* Upload + controls row */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input type="file" accept="video/*" onChange={onPick} />
-        <button
-          onClick={uploadFile}
-          disabled={!file}
-          style={{ background: "#16a34a", color: "white", padding: "8px 16px", borderRadius: 8, opacity: file ? 1 : 0.5 }}
-        >
-          Upload Swing
-        </button>
-        <button
-          onClick={refreshList}
-          style={{ background: "#2563eb", color: "white", padding: "8px 16px", borderRadius: 8 }}
-        >
-          Refresh
-        </button>
+        <button onClick={uploadFile} disabled={!file}
+          style={{ background: "#16a34a", color: "white", padding: "8px 16px", borderRadius: 8, opacity: file ? 1 : 0.5 }}>Upload Swing</button>
+        <button onClick={refreshList}
+          style={{ background: "#2563eb", color: "white", padding: "8px 16px", borderRadius: 8 }}>Refresh</button>
         {percent > 0 ? <span>{percent}%</span> : null}
       </div>
 
       {status ? <p>{status}</p> : null}
       {loadingList ? <p>Loading…</p> : null}
 
-      {/* NEW: Filter & Sort controls */}
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", width: "100%", maxWidth: 1000 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <label style={{ color: "#9ca3af", fontSize: 12 }}>Min rating</label>
-          <select
-            value={minRating}
-            onChange={(e) => setMinRating(e.target.value)}
-            style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}
-          >
+          <select value={minRating} onChange={(e) => setMinRating(e.target.value)}
+            style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}>
             <option value="">—</option>
-            {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-              <option key={n} value={n}>{n}+</option>
-            ))}
+            {[1,2,3,4,5,6,7,8,9,10].map((n) => (<option key={n} value={n}>{n}+</option>))}
           </select>
         </div>
-
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <label style={{ color: "#9ca3af", fontSize: 12 }}>Sort by</label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}
-          >
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+            style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}>
             <option value="newest">Newest</option>
             <option value="highest">Highest rating</option>
             <option value="lowest">Lowest rating</option>
@@ -191,7 +160,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Gallery */}
       <div style={{ width: "100%", maxWidth: 1000 }}>
         {filteredSorted.length === 0 ? (
           <p style={{ color: "#9ca3af" }}>No swings match your filter.</p>
@@ -200,48 +168,83 @@ export default function Home() {
             {filteredSorted.map((it) => (
               <div key={it.key} style={{ border: "1px solid #1f2937", padding: 10, borderRadius: 10, background: "#0b0f16" }}>
                 <video src={it.url} controls style={{ width: "100%", borderRadius: 8 }} />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 8 }}>
-                  <small title={it.key} style={{ color: "#9ca3af" }}>
-                    {new Date(it.lastModified).toLocaleString()}
-                  </small>
 
+                {/* META CONTROLS */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 8, flexWrap: "wrap" }}>
+                  <small style={{ color: "#9ca3af" }}>{new Date(it.lastModified).toLocaleString()}</small>
+
+                  {/* Favorite toggle */}
+                  <button
+                    onClick={() => saveMeta(it.key, { favorite: !it.favorite })}
+                    style={{
+                      background: it.favorite ? "#facc15" : "#1f2937",
+                      color: it.favorite ? "#000" : "white",
+                      borderRadius: 6,
+                      padding: "4px 8px",
+                    }}
+                  >
+                    {it.favorite ? "★ Fav" : "☆ Fav"}
+                  </button>
+                </div>
+
+                {/* Rating + Tags + Notes */}
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {/* Rating */}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <label htmlFor={`r-${it.key}`} style={{ color: "#9ca3af", fontSize: 12 }}>Rating</label>
+                    <label style={{ color: "#9ca3af", fontSize: 12 }}>Rating</label>
                     <select
-                      id={`r-${it.key}`}
                       value={it.rating ?? ""}
-                      onChange={(e) => setRating(it.key, Number(e.target.value))}
+                      onChange={(e) => saveMeta(it.key, { rating: Number(e.target.value) })}
                       style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}
                     >
                       <option value="" disabled>—</option>
-                      {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
+                      {[1,2,3,4,5,6,7,8,9,10].map((n) => (<option key={n} value={n}>{n}</option>))}
                     </select>
                     {typeof it.rating === "number" && (
                       <span style={{ fontSize: 12, color: "#9ca3af" }}>({it.rating}/10)</span>
                     )}
                   </div>
 
-                  <button
-                    onClick={() => deleteItem(it.key)}
-                    style={{ background: "#dc2626", color: "white", padding: "4px 8px", borderRadius: 6 }}
-                  >
-                    Delete
-                  </button>
+                  {/* Tags */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label style={{ color: "#9ca3af", fontSize: 12 }}>Tags</label>
+                    <input
+                      type="text"
+                      value={it.tags.join(", ")}
+                      placeholder="e.g. Driver, 7-Iron"
+                      onChange={(e) =>
+                        saveMeta(it.key, {
+                          tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+                        })
+                      }
+                      style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px", flex: 1 }}
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label style={{ color: "#9ca3af", fontSize: 12 }}>Notes</label>
+                    <textarea
+                      rows={2}
+                      value={it.notes}
+                      placeholder="Add quick notes about this swing..."
+                      onChange={(e) => saveMeta(it.key, { notes: e.target.value })}
+                      style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px", resize: "vertical" }}
+                    />
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => deleteItem(it.key)}
+                  style={{ marginTop: 8, background: "#dc2626", color: "white", padding: "4px 8px", borderRadius: 6 }}
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      <p style={{ fontSize: 12, color: "#6b7280", marginTop: 16 }}>
-        Tip: large videos may take a bit to upload depending on your internet.
-      </p>
     </main>
   );
 }
-
-
-
