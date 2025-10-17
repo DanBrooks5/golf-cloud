@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function Home() {
   const [file, setFile] = useState(null);
@@ -7,6 +7,10 @@ export default function Home() {
   const [items, setItems] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [percent, setPercent] = useState(0);
+
+  // NEW: filter & sort state
+  const [minRating, setMinRating] = useState(""); // "" means no filter
+  const [sortBy, setSortBy] = useState("newest"); // newest | highest | lowest
 
   const MAX_MB = 500;
   const ALLOWED_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
@@ -107,12 +111,35 @@ export default function Home() {
     setItems((prev) => prev.map((it) => (it.key === key ? { ...it, rating } : it)));
   }
 
+  // Derived list: apply filter + sort client-side
+  const filteredSorted = useMemo(() => {
+    let list = [...items];
+
+    // filter by min rating if set
+    if (minRating !== "") {
+      const threshold = Number(minRating);
+      list = list.filter((it) => (typeof it.rating === "number" ? it.rating : 0) >= threshold);
+    }
+
+    // sort
+    if (sortBy === "newest") {
+      list.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+    } else if (sortBy === "highest") {
+      list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    } else if (sortBy === "lowest") {
+      list.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
+    }
+
+    return list;
+  }, [items, minRating, sortBy]);
+
   useEffect(() => { refreshList(); }, []);
 
   return (
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", gap: 16, alignItems: "center", padding: 24 }}>
       <h1 style={{ fontSize: 28, fontWeight: 800 }}>Golf Cloud</h1>
 
+      {/* Upload + controls row */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input type="file" accept="video/*" onChange={onPick} />
         <button
@@ -134,12 +161,43 @@ export default function Home() {
       {status ? <p>{status}</p> : null}
       {loadingList ? <p>Loading…</p> : null}
 
+      {/* NEW: Filter & Sort controls */}
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", width: "100%", maxWidth: 1000 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <label style={{ color: "#9ca3af", fontSize: 12 }}>Min rating</label>
+          <select
+            value={minRating}
+            onChange={(e) => setMinRating(e.target.value)}
+            style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}
+          >
+            <option value="">—</option>
+            {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+              <option key={n} value={n}>{n}+</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <label style={{ color: "#9ca3af", fontSize: 12 }}>Sort by</label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{ background: "#111827", color: "white", borderRadius: 6, padding: "4px 6px" }}
+          >
+            <option value="newest">Newest</option>
+            <option value="highest">Highest rating</option>
+            <option value="lowest">Lowest rating</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Gallery */}
       <div style={{ width: "100%", maxWidth: 1000 }}>
-        {items.length === 0 ? (
-          <p style={{ color: "#9ca3af" }}>No swings yet.</p>
+        {filteredSorted.length === 0 ? (
+          <p style={{ color: "#9ca3af" }}>No swings match your filter.</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginTop: 12 }}>
-            {items.map((it) => (
+            {filteredSorted.map((it) => (
               <div key={it.key} style={{ border: "1px solid #1f2937", padding: 10, borderRadius: 10, background: "#0b0f16" }}>
                 <video src={it.url} controls style={{ width: "100%", borderRadius: 8 }} />
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 8 }}>
@@ -184,5 +242,6 @@ export default function Home() {
     </main>
   );
 }
+
 
 
