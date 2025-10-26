@@ -20,6 +20,9 @@ const SHOT_TYPES = [
   'stock','neutral','draw','fade','flighted','high','stinger'
 ] as const;
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function UploadsPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
