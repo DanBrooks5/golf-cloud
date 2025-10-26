@@ -2,12 +2,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // IMPORTANT: we are NOT doing static export because you have API routes
   reactStrictMode: true,
-  // Important: do NOT set output: 'export' on Vercel
+
+  // Let the build succeed even if ESLint/TS still complain.
+  // (We’ll clean these up later.)
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-  // If Vercel warns about monorepo roots, you can add:
-  // outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;
