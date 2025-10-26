@@ -1,13 +1,13 @@
 // next.config.ts
 import type { NextConfig } from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
-  // ❌ no `output: 'export'`
-  images: { unoptimized: true },
+  reactStrictMode: true,
+  // Important: do NOT set output: 'export' on Vercel
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-  outputFileTracingRoot: path.join(__dirname),
+  // If Vercel warns about monorepo roots, you can add:
+  // outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;
