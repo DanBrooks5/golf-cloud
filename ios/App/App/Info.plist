@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleDisplayName</key><string>Golf Cloud</string>
+  <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+  <key>CFBundleName</key><string>App</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleVersion</key><string>1</string>
+
+  <!-- Permissions -->
+  <key>NSCameraUsageDescription</key>
+  <string>Allow Golf Cloud to use your camera to record swings.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Allow Golf Cloud to use your microphone when recording video.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Allow Golf Cloud to access your photo library to pick videos.</string>
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>Allow Golf Cloud to save recorded videos to your library.</string>
+
+  <key>NSCameraUsageDescription</key>
+<string>Record your swing videos.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Capture audio while recording swings.</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Select existing swing videos for upload.</string>
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>Save processed videos you create.</string>
+
+</dict>
+</plist>

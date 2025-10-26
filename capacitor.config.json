@@ -1,0 +1,11 @@
+{
+  "appId": "com.golfcloud.app",
+  "appName": "Golf Cloud",
+  "webDir": "out",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://golf-cloud-git-main-dan-s-projects-6a7dbea6.vercel.app",
+    "cleartext": false
+  },
+  "allowNavigation": ["YOUR-APP.vercel.app"]
+}
